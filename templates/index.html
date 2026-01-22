@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🐝 Smart Beehive Monitoring</title>
+</head>
+<body>
+    <h2>🐝 Smart Beehive Monitoring</h2>
+
+    <p><b>Hive ID:</b> <span id="hive_id"></span></p>
+    <p><b>Status:</b> <span id="status"></span></p>
+    <p><b>Temperature:</b> <span id="temperature"></span> °C</p>
+    <p><b>Humidity:</b> <span id="humidity"></span> %</p>
+    <p><b>Weight 1:</b> <span id="weight1"></span> kg</p>
+    <p><b>Weight 2:</b> <span id="weight2"></span> kg</p>
+    <p><b>Total Weight:</b> <span id="total_weight"></span> kg</p>
+    <p><b>Last Update:</b> <span id="timestamp"></span></p>
+
+    <script>
+        fetch("/data")
+            .then(res => res.json())
+            .then(d => {
+                document.getElementById("hive_id").innerText = d.hive_id;
+                document.getElementById("status").innerText = d.status;
+                document.getElementById("temperature").innerText = d.temperature;
+                document.getElementById("humidity").innerText = d.humidity;
+                document.getElementById("weight1").innerText = d.weight1;
+                document.getElementById("weight2").innerText = d.weight2;
+                document.getElementById("total_weight").innerText = d.total_weight;
+                document.getElementById("timestamp").innerText = d.timestamp;
+            });
+    </script>
+</body>
+</html>
