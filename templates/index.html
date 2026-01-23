@@ -1,33 +1,184 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>🐝 Smart Beehive Monitoring</title>
+  <meta charset="UTF-8" />
+  <title>Smart Beehive Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    :root {
+      --primary: #f4b400;
+      --dark: #1f2937;
+      --light: #f9fafb;
+      --card: #ffffff;
+      --success: #16a34a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--light);
+      color: var(--dark);
+    }
+
+    /* ---------- HEADER ---------- */
+    header {
+      background: linear-gradient(90deg, #f4b400, #f59e0b);
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .status {
+      background: rgba(255,255,255,0.2);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+
+    /* ---------- MAIN ---------- */
+    main {
+      max-width: 1200px;
+      margin: auto;
+      padding: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+    }
+
+    .card .title {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .card .value {
+      font-size: 32px;
+      font-weight: 600;
+    }
+
+    .unit {
+      font-size: 16px;
+      color: #6b7280;
+    }
+
+    /* ---------- ICON COLORS ---------- */
+    .temp { color: #ef4444; }
+    .hum { color: #3b82f6; }
+    .weight { color: #16a34a; }
+    .location { color: #6366f1; }
+
+    /* ---------- FOOTER ---------- */
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+  </style>
 </head>
+
 <body>
-    <h2>🐝 Smart Beehive Monitoring</h2>
 
-    <p><b>Hive ID:</b> <span id="hive_id"></span></p>
-    <p><b>Status:</b> <span id="status"></span></p>
-    <p><b>Temperature:</b> <span id="temperature"></span> °C</p>
-    <p><b>Humidity:</b> <span id="humidity"></span> %</p>
-    <p><b>Weight 1:</b> <span id="weight1"></span> kg</p>
-    <p><b>Weight 2:</b> <span id="weight2"></span> kg</p>
-    <p><b>Total Weight:</b> <span id="total_weight"></span> kg</p>
-    <p><b>Last Update:</b> <span id="timestamp"></span></p>
+<header>
+  <h1>🐝 Smart Beehive Monitoring System</h1>
+  <div class="status">LIVE</div>
+</header>
 
-    <script>
-        fetch("/data")
-            .then(res => res.json())
-            .then(d => {
-                document.getElementById("hive_id").innerText = d.hive_id;
-                document.getElementById("status").innerText = d.status;
-                document.getElementById("temperature").innerText = d.temperature;
-                document.getElementById("humidity").innerText = d.humidity;
-                document.getElementById("weight1").innerText = d.weight1;
-                document.getElementById("weight2").innerText = d.weight2;
-                document.getElementById("total_weight").innerText = d.total_weight;
-                document.getElementById("timestamp").innerText = d.timestamp;
-            });
-    </script>
+<main>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="title">🌡 Temperature</div>
+      <div class="value temp">
+        <span id="temperature">--</span>
+        <span class="unit">°C</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">💧 Humidity</div>
+      <div class="value hum">
+        <span id="humidity">--</span>
+        <span class="unit">%</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">⚖ Total Hive Weight</div>
+      <div class="value weight">
+        <span id="weight">--</span>
+        <span class="unit">kg</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">📍 Hive Location</div>
+      <div class="value location" style="font-size:18px">
+        <span id="location">--</span>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  Last updated: <span id="updated">--</span> <br>
+  © Smart Beehive Technology Platform
+</footer>
+
+<script>
+async function loadData() {
+  try {
+    const res = await fetch("/data");
+    const d = await res.json();
+
+    document.getElementById("temperature").innerText = d.temperature;
+    document.getElementById("humidity").innerText = d.humidity;
+    document.getElementById("weight").innerText = d.total_weight;
+
+    document.getElementById("location").innerText =
+      d.latitude + ", " + d.longitude;
+
+    document.getElementById("updated").innerText =
+      new Date().toLocaleString();
+  } catch (e) {
+    console.error("Data load error", e);
+  }
+}
+
+loadData();
+setInterval(loadData, 15000);
+</script>
+
 </body>
 </html>
