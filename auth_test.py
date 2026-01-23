@@ -8,6 +8,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 print("🐝 Starting Smart Beehive App...")
 
+# ---------------- APP ----------------
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 
@@ -20,17 +21,22 @@ scope = [
 # Cloud (Render)
 if "GOOGLE_SERVICE_ACCOUNT_B64" in os.environ:
     print("🔐 Using Render credentials")
-    json_str = base64.b64decode(
+
+    # ✅ FIX: DO NOT decode to UTF-8
+    decoded_bytes = base64.b64decode(
         os.environ["GOOGLE_SERVICE_ACCOUNT_B64"]
-    ).decode("utf-8")
-    service_account_info = json.loads(json_str)
+    )
+
+    service_account_info = json.loads(decoded_bytes)
 
 # Local (Windows PC)
 else:
     print("🔐 Using local service_account.json")
+
     with open("service_account.json", "r", encoding="utf-8") as f:
         service_account_info = json.load(f)
 
+# ---------------- GOOGLE AUTH ----------------
 creds = ServiceAccountCredentials.from_json_keyfile_dict(
     service_account_info, scope
 )
@@ -49,10 +55,12 @@ def dashboard():
 @app.route("/data")
 def data():
     rows = sheet.get_all_values()
+
     if len(rows) < 2:
         return jsonify({"error": "No data found"})
 
     latest = rows[-1]
+
     return jsonify({
         "timestamp": latest[0],
         "hive_id": latest[1],
@@ -70,4 +78,3 @@ def data():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
