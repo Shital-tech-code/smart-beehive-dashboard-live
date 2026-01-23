@@ -18,21 +18,12 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Cloud (Render)
 if "GOOGLE_SERVICE_ACCOUNT_B64" in os.environ:
     print("🔐 Using Render credentials")
-
-    # ✅ FIX: DO NOT decode to UTF-8
-    decoded_bytes = base64.b64decode(
-        os.environ["GOOGLE_SERVICE_ACCOUNT_B64"]
-    )
-
-    service_account_info = json.loads(decoded_bytes)
-
-# Local (Windows PC)
+    decoded_bytes = base64.b64decode(os.environ["GOOGLE_SERVICE_ACCOUNT_B64"])
+    service_account_info = json.loads(decoded_bytes.decode("utf-8"))
 else:
     print("🔐 Using local service_account.json")
-
     with open("service_account.json", "r", encoding="utf-8") as f:
         service_account_info = json.load(f)
 
@@ -47,6 +38,13 @@ SHEET_ID = "1gjlu4F-iNqhjrT57mpU7vGQOgXtjMer6i2Z3dDRbrFo"
 sheet = client.open_by_key(SHEET_ID).sheet1
 print("✅ Google Sheet connected")
 
+# ---------------- HELPERS ----------------
+def safe_float(val):
+    try:
+        return float(val)
+    except:
+        return 0.0
+
 # ---------------- ROUTES ----------------
 @app.route("/")
 def dashboard():
@@ -59,19 +57,33 @@ def data():
     if len(rows) < 2:
         return jsonify({"error": "No data found"})
 
-    latest = rows[-1]
+    records = rows[1:]  # skip header
+    hives = {}
+
+    for row in records:
+        hive_id = row[1]
+        timestamp = row[0]
+
+        # Always keep the latest record per hive
+        hives[hive_id] = {
+            "timestamp": timestamp,
+            "hive_id": hive_id,
+            "status": row[2],
+            "temperature": safe_float(row[3]),
+            "humidity": safe_float(row[4]),
+            "weight1": safe_float(row[5]),
+            "weight2": safe_float(row[6]),
+            "total_weight": safe_float(row[7]),
+            "latitude": row[8],
+            "longitude": row[9],
+
+            # For future map / UI
+            "location_name": "Fetching location..."
+        }
 
     return jsonify({
-        "timestamp": latest[0],
-        "hive_id": latest[1],
-        "status": latest[2],
-        "temperature": latest[3],
-        "humidity": latest[4],
-        "weight1": latest[5],
-        "weight2": latest[6],
-        "total_weight": latest[7],
-        "latitude": latest[8],
-        "longitude": latest[9]
+        "total_hives": len(hives),
+        "hives": list(hives.values())
     })
 
 # ---------------- RUN ----------------
