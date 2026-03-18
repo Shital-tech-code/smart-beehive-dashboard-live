@@ -1,1 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Beehive</title>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Segoe UI;
+  background:#eef1f5;
+}
+
+header{
+  background:linear-gradient(90deg,#f4b400,#ffcc00);
+  padding:15px;
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
+  color:#fff;
+}
+
+.container{
+  padding:10px;
+}
+
+.card{
+  background:#fff;
+  border-radius:15px;
+  padding:15px;
+  margin-bottom:15px;
+  box-shadow:0 6px 15px rgba(0,0,0,.1);
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.status{
+  background:#28a745;
+  color:#fff;
+  padding:5px 12px;
+  border-radius:20px;
+  font-size:12px;
+}
+
+.location{
+  margin:8px 0;
+  color:#555;
+}
+
+.metrics{
+  display:flex;
+  justify-content:space-between;
+  margin:10px 0;
+  font-weight:500;
+}
+
+.time{
+  font-size:12px;
+  color:#888;
+}
+</style>
+</head>
+
+<body>
+
+<header>🐝 Smart Beehive</header>
+<div class="container" id="app"></div>
+
+<script>
+
+let charts = {};
+
+function getLocation(hive){
+  if(hive.hive_id === "Hive_2"){
+    return "📍 MGIRI, Wardha";
+  }
+  return "📍 Yavatmal";
+}
+
+function createChart(id, hive){
+
+  if(charts[id]) charts[id].destroy();
+
+  charts[id] = new Chart(document.getElementById(id), {
+    type: "line",
+    data: {
+      labels: ["Temp","Humidity","Weight"],
+      datasets: [{
+        data: [
+          hive.temperature,
+          hive.humidity,
+          hive.total_weight
+        ],
+        borderWidth:2,
+        tension:0.4
+      }]
+    },
+    options:{
+      plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true}}
+    }
+  });
+}
+
+async function load(){
+
+  const res = await fetch("/data?x="+Date.now());
+  const data = await res.json();
+
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+
+  data.hives.forEach(hive=>{
+
+    app.innerHTML += `
+    <div class="card">
+
+      <div class="top">
+        <div>🐝 ${hive.hive_id}</div>
+        <div class="status">${hive.status}</div>
+      </div>
+
+      <div class="location">${getLocation(hive)}</div>
+
+      <div class="metrics">
+        <div>🌡 ${hive.temperature}°C</div>
+        <div>💧 ${hive.humidity}%</div>
+        <div>⚖ ${hive.total_weight}kg</div>
+      </div>
+
+      <canvas id="c_${hive.hive_id}" height="90"></canvas>
+
+      <div class="time">⏱ ${hive.timestamp}</div>
+
+    </div>
+    `;
+
+    setTimeout(()=>{
+      createChart(`c_${hive.hive_id}`, hive);
+    },50);
+
+  });
+}
+
+load();
+setInterval(load,15000);
+
+</script>
+
+</body>
+</html>
