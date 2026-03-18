@@ -5,33 +5,38 @@ import gspread
 from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 from oauth2client.service_account import ServiceAccountCredentials
+import sys
 
 print("🐝 Smart Beehive PRO VERSION 🚀")
 
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 
-# GOOGLE AUTH
+# ---------------- GOOGLE AUTH ----------------
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
 ]
 
-if "GOOGLE_SERVICE_ACCOUNT_B64" in os.environ:
-    decoded_bytes = base64.b64decode(os.environ["GOOGLE_SERVICE_ACCOUNT_B64"])
-    service_account_info = json.loads(decoded_bytes.decode("utf-8"))
-else:
-    with open("service_account.json", "r", encoding="utf-8") as f:
-        service_account_info = json.load(f)
+try:
+    if "GOOGLE_SERVICE_ACCOUNT_B64" in os.environ:
+        decoded_bytes = base64.b64decode(os.environ["GOOGLE_SERVICE_ACCOUNT_B64"])
+        service_account_info = json.loads(decoded_bytes.decode("utf-8"))
+    else:
+        with open("service_account.json", "r", encoding="utf-8") as f:
+            service_account_info = json.load(f)
+except Exception as e:
+    print("❌ Google service account missing or invalid:", e)
+    sys.exit(1)  # Stop the app if credentials are missing
 
-creds = ServiceAccountCredentials.from_json_keyfile_dict(
-    service_account_info, scope
-)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(service_account_info, scope)
 client = gspread.authorize(creds)
 
-SHEET_ID = "1gjlu4F-iNqhjrT57mpU7vGQOgXtjMer6i2Z3dDRbrFo"
+# ---------------- GOOGLE SHEET ----------------
+SHEET_ID = os.environ.get("SHEET_ID", "1gjlu4F-iNqhjrT57mpU7vGQOgXtjMer6i2Z3dDRbrFo")
 sheet = client.open_by_key(SHEET_ID).sheet1
 
+# ---------------- UTILITIES ----------------
 def safe_float(val):
     try:
         return float(val)
@@ -44,9 +49,10 @@ def get_hive_number(hive_id):
     except:
         return 999
 
+# ---------------- ROUTES ----------------
 @app.route("/")
 def dashboard():
-    return render_template("index.html")
+    return render_template("index.html")  # Your HTML template in templates/
 
 @app.route("/data")
 def data():
@@ -59,24 +65,21 @@ def data():
     latest_hives = {}
 
     for row in records:
-
         if len(row) < 10:
             continue
 
         timestamp = row[0].strip()
         hive_id = row[1].strip()
-
         if not hive_id:
             continue
 
         temperature = safe_float(row[3])
         humidity = safe_float(row[4])
         total_weight = safe_float(row[7])
-
         lat = row[8].strip()
         lon = row[9].strip()
 
-        # 👉 FIX MGIRI
+        # MGIRI fixed location for Hive_2
         if hive_id == "Hive_2":
             lat = "20.739964"
             lon = "78.594939"
@@ -86,11 +89,9 @@ def data():
             "hive_id": hive_id,
             "status": "Active",
             "battery": "🟢 Active",
-
             "temperature": temperature,
             "humidity": humidity,
             "total_weight": total_weight,
-
             "latitude": lat,
             "longitude": lon
         }
@@ -105,6 +106,7 @@ def data():
         "hives": sorted_hives
     })
 
+# ---------------- MAIN ----------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
