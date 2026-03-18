@@ -94,8 +94,12 @@ def data():
         lat = row[8].strip()
         lon = row[9].strip()
 
-        # 👉 If Hive_2 has no location → set MGIRI Wardha
-        if hive_id == "Hive_2" and (not lat or not lon):
+        # 👉 ONLY fix for Hive_2
+        if hive_id == "Hive_2" and (
+            not lat or not lon or
+            lat in ["0", "null", "None", ""] or
+            lon in ["0", "null", "None", ""]
+        ):
             lat = "20.7453"
             lon = "78.6022"
 
