@@ -12,22 +12,19 @@ print("🐝 Starting Smart Beehive App...")
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 
-# ---------------- AUTH ----------------
+# ---------------- GOOGLE AUTH ----------------
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
 ]
 
 if "GOOGLE_SERVICE_ACCOUNT_B64" in os.environ:
-    print("🔐 Using Render credentials")
     decoded_bytes = base64.b64decode(os.environ["GOOGLE_SERVICE_ACCOUNT_B64"])
     service_account_info = json.loads(decoded_bytes.decode("utf-8"))
 else:
-    print("🔐 Using local service_account.json")
     with open("service_account.json", "r", encoding="utf-8") as f:
         service_account_info = json.load(f)
 
-# ---------------- GOOGLE AUTH ----------------
 creds = ServiceAccountCredentials.from_json_keyfile_dict(
     service_account_info, scope
 )
@@ -55,36 +52,83 @@ def data():
     rows = sheet.get_all_values()
 
     if len(rows) < 2:
-        return jsonify({"error": "No data found"})
+        return jsonify({"hives": []})
 
-    records = rows[1:]  # skip header
-    hives = {}
+    records = rows[1:]   # skip header
+    latest_hives = {}
 
     for row in records:
-        hive_id = row[1]
-        timestamp = row[0]
 
-        # Always keep the latest record per hive
-        hives[hive_id] = {
+        # Ensure full row exists
+        if len(row) < 10:
+            continue
+
+        timestamp = row[0].strip()
+        hive_id = row[1].strip()
+
+        # ❌ Skip header / invalid rows
+        if (
+            not hive_id or
+            hive_id.lower() == "hiveid" or
+            timestamp.lower() == "timestamp"
+        ):
+            continue
+
+        temperature = safe_float(row[3])
+        humidity = safe_float(row[4])
+        weight1 = safe_float(row[5])
+        weight2 = safe_float(row[6])
+        total_weight = safe_float(row[7])
+
+        # ❌ Skip dummy zero-data
+        if (
+            temperature == 0 and
+            humidity == 0 and
+            weight1 == 0 and
+            weight2 == 0 and
+            total_weight == 0
+        ):
+            continue
+
+        # ---------------- LOCATION FIX ----------------
+        lat = row[8].strip()
+        lon = row[9].strip()
+
+        # 👉 If Hive_2 has no location → set MGIRI Wardha
+        if hive_id == "Hive_2" and (not lat or not lon):
+            lat = "20.7453"
+            lon = "78.6022"
+
+        # ---------------- STORE DATA ----------------
+        latest_hives[hive_id] = {
             "timestamp": timestamp,
             "hive_id": hive_id,
-            "status": row[2],
-            "temperature": safe_float(row[3]),
-            "humidity": safe_float(row[4]),
-            "weight1": safe_float(row[5]),
-            "weight2": safe_float(row[6]),
-            "total_weight": safe_float(row[7]),
-            "latitude": row[8],
-            "longitude": row[9],
 
-            # For future map / UI
-            "location_name": "Fetching location..."
+            # 👉 Default status Active
+            "status": row[2] if row[2] else "Active",
+
+            "temperature": temperature,
+            "humidity": humidity,
+            "weight1": weight1,
+            "weight2": weight2,
+            "total_weight": total_weight,
+            "latitude": lat,
+            "longitude": lon
         }
 
+    # ---------------- SORT ----------------
+    sorted_hives = sorted(
+        latest_hives.values(),
+        key=lambda x: int(x["hive_id"].split("_")[1])
+        if "_" in x["hive_id"] and x["hive_id"].split("_")[1].isdigit()
+        else 999
+    )
+
     return jsonify({
-        "total_hives": len(hives),
-        "hives": list(hives.values())
+        "total_hives": len(sorted_hives),
+        "hives": sorted_hives
     })
+
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
