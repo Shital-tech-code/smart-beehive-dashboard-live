@@ -5,150 +5,122 @@
 <title>Smart Beehive Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-:root{
-  --primary:#f4b400;
-  --dark:#1f2937;
-  --light:#f9fafb;
-  --card:#ffffff;
-}
-
-*{box-sizing:border-box}
-
 body{
   margin:0;
-  font-family:"Segoe UI",Roboto,Arial,sans-serif;
-  background:var(--light);
-  color:var(--dark);
+  font-family:"Segoe UI",sans-serif;
+  background:#f4f6f9;
 }
 
 /* HEADER */
 header{
-  background:linear-gradient(90deg,#f4b400,#f59e0b);
+  background:#f4b400;
   color:#fff;
-  padding:18px 24px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-header h1{
-  margin:0;
-  font-size:22px;
-}
-
-header .live{
-  background:rgba(255,255,255,.2);
-  padding:6px 14px;
-  border-radius:20px;
-  font-size:14px;
-}
-
-/* MAIN */
-main{
-  max-width:1300px;
-  margin:auto;
-  padding:24px;
-}
-
-.hive-card{
-  background:var(--card);
-  border-radius:18px;
-  padding:22px;
-  margin-bottom:26px;
-  box-shadow:0 10px 30px rgba(0,0,0,.07);
-}
-
-.hive-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:18px;
-}
-
-.hive-title{
-  font-size:18px;
-  font-weight:600;
-}
-
-.hive-status{
-  padding:6px 14px;
-  border-radius:20px;
-  font-size:14px;
-  background:#e5e7eb;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:18px;
-}
-
-.card{
-  background:#fff;
-  border-radius:14px;
-  padding:18px;
-  box-shadow:0 6px 18px rgba(0,0,0,.06);
-}
-
-.title{
-  font-size:13px;
-  color:#6b7280;
-}
-
-.value{
-  font-size:26px;
-  font-weight:600;
-}
-
-.updated{
-  margin-top:14px;
-  font-size:13px;
-  color:#6b7280;
-}
-
-/* FOOTER */
-footer{
+  padding:15px;
   text-align:center;
-  margin:30px 0;
+  font-size:20px;
+  font-weight:600;
+}
+
+/* CONTAINER */
+main{
+  padding:12px;
+}
+
+/* COMPACT CARD */
+.hive{
+  background:#fff;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,.08);
+  border-left:5px solid #f4b400;
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  font-weight:600;
+}
+
+.status{
+  background:#e6f4ea;
+  padding:3px 10px;
+  border-radius:20px;
+  font-size:12px;
+}
+
+.location{
   font-size:13px;
-  color:#6b7280;
+  color:#555;
+  margin:5px 0;
+}
+
+.metrics{
+  display:flex;
+  justify-content:space-between;
+  font-size:14px;
+  margin-bottom:6px;
+}
+
+.time{
+  font-size:11px;
+  color:#888;
+  text-align:right;
 }
 </style>
 </head>
 
 <body>
 
-<header>
-  <h1>🐝 Smart Beehive Monitoring App</h1>
-  <div class="live">LIVE</div>
-</header>
-
+<header>🐝 Smart Beehive</header>
 <main id="hiveContainer"></main>
 
-<footer>
-  © Smart Beehive Technology Platform
-</footer>
-
 <script>
-// ---------- LOCATION ----------
+
+// -------- LOCATION --------
 async function getLocationName(lat, lon){
-  if(!lat || !lon || lat == "0" || lon == "0"){
-    return "Location unavailable";
-  }
+  if(!lat || !lon || lat == "0") return "Unavailable";
 
   try{
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
     );
     const data = await res.json();
-    return data.display_name || "MGIRI Wardha";
+    return data.display_name || "Wardha";
   }catch{
-    return "MGIRI Wardha";
+    return "Wardha";
   }
 }
 
-// ---------- LOAD DATA ----------
+// -------- GRAPH --------
+function createChart(id, hive){
+  const ctx = document.getElementById(id);
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ["Temp", "Humidity", "Weight"],
+      datasets: [{
+        data: [
+          hive.temperature,
+          hive.humidity,
+          hive.total_weight
+        ],
+        borderWidth: 2,
+        tension: 0.4
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+// -------- LOAD DATA --------
 async function loadData(){
   const container = document.getElementById("hiveContainer");
   container.innerHTML = "";
@@ -158,58 +130,48 @@ async function loadData(){
 
   for(const hive of json.hives){
 
-    // Skip invalid rows
-    if(
-      !hive.hive_id ||
-      hive.hive_id === "HiveID" ||
-      (
-        hive.temperature == 0 &&
-        hive.humidity == 0 &&
-        hive.weight1 == 0 &&
-        hive.weight2 == 0 &&
-        hive.total_weight == 0
-      )
-    ){
-      continue;
-    }
+    // Skip dummy
+    if(!hive.hive_id) continue;
 
     let locationName = await getLocationName(
       hive.latitude,
       hive.longitude
     );
 
-    // ✅ FORCE ONLY FOR HIVE_2
-    if (hive.hive_id === "Hive_2") {
-      locationName = "Radio MGIRI, Wardha";
-    }
-
     container.innerHTML += `
-      <div class="hive-card">
-        <div class="hive-header">
-          <div class="hive-title">Hive ID: ${hive.hive_id}</div>
-          <div class="hive-status">${hive.status}</div>
+      <div class="hive">
+        
+        <div class="top">
+          <span>🐝 ${hive.hive_id}</span>
+          <span class="status">🟢 ${hive.status}</span>
         </div>
 
-        <div class="grid">
-          <div class="card"><div class="title">🌡 Temperature</div><div class="value">${hive.temperature} °C</div></div>
-          <div class="card"><div class="title">💧 Humidity</div><div class="value">${hive.humidity} %</div></div>
-          <div class="card"><div class="title">⚖ Weight 1</div><div class="value">${hive.weight1} kg</div></div>
-          <div class="card"><div class="title">⚖ Weight 2</div><div class="value">${hive.weight2} kg</div></div>
-          <div class="card"><div class="title">📦 Total Weight</div><div class="value">${hive.total_weight} kg</div></div>
-          <div class="card"><div class="title">📍 Location</div><div class="value" style="font-size:16px">${locationName}</div></div>
+        <div class="location">📍 ${locationName}</div>
+
+        <div class="metrics">
+          <span>🌡 ${hive.temperature}°C</span>
+          <span>💧 ${hive.humidity}%</span>
+          <span>⚖ ${hive.total_weight} kg</span>
         </div>
 
-        <div class="updated">
-          Last update: ${hive.timestamp}
-        </div>
+        <canvas id="chart_${hive.hive_id}" height="100"></canvas>
+
+        <div class="time">⏱ ${hive.timestamp}</div>
+
       </div>
     `;
+
+    // Draw chart
+    setTimeout(()=>{
+      createChart(`chart_${hive.hive_id}`, hive);
+    },100);
   }
 }
 
 // AUTO REFRESH
 loadData();
 setInterval(loadData,15000);
+
 </script>
 
 </body>
