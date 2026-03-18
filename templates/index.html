@@ -162,49 +162,45 @@ function createChart(id, hive){
 
 // ✅ LOAD DATA
 async function load(){
-
   const res = await fetch("/data?x="+Date.now());
   const data = await res.json();
 
   const app = document.getElementById("app");
-  app.innerHTML = "";
+  app.innerHTML = ""; // Clear container
 
   for(const hive of data.hives){
 
-    // ✅ Wait for location first
-    let locationName = await getLocation(hive);
+    // ✅ Create card container first
+    const card = document.createElement("div");
+    card.className = "card";
 
-    // ✅ Create card
-    app.innerHTML += `
-    <div class="card">
-
+    card.innerHTML = `
       <div class="top">
         <div>🐝 ${hive.hive_id}</div>
         <div class="status">${hive.status}</div>
       </div>
-
-      <div class="location">${locationName}</div>
-
+      <div class="location">Loading...</div>
       <div class="metrics">
         <div>🌡 ${hive.temperature}°C</div>
         <div>💧 ${hive.humidity}%</div>
         <div>⚖ ${hive.total_weight}kg</div>
       </div>
-
       <div class="chartBox">
         <canvas id="c_${hive.hive_id}"></canvas>
       </div>
-
       <div class="time">⏱ ${hive.timestamp}</div>
-
-    </div>
     `;
 
-    // ✅ Create chart immediately (no delay)
+    app.appendChild(card);
+
+    // ✅ Resolve location asynchronously
+    const locationName = await getLocation(hive);
+    card.querySelector(".location").textContent = locationName;
+
+    // ✅ Create chart after canvas exists
     createChart(`c_${hive.hive_id}`, hive);
   }
 }
-
 // AUTO REFRESH
 load();
 setInterval(load,15000);
