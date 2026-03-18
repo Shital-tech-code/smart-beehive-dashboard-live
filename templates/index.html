@@ -24,7 +24,7 @@ header{
   color:#fff;
 }
 
-/* CENTER CONTAINER */
+/* CONTAINER */
 .container{
   max-width:420px;
   margin:auto;
@@ -74,7 +74,7 @@ header{
   padding-bottom:6px;
 }
 
-/* GRAPH FIX */
+/* GRAPH */
 .chartBox{
   height:120px;
 }
@@ -98,20 +98,35 @@ header{
 
 let charts = {};
 
-function getLocation(hive){
+// ✅ LOCATION FUNCTION (FINAL FIX)
+async function getLocation(hive){
+
+  // Force MGIRI only for Hive_2
   if(hive.hive_id === "Hive_2"){
     return "📍 MGIRI, Wardha";
   }
-  return "📍 Yavatmal";
+
+  // For Hive_1 → use GPS
+  try{
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${hive.latitude}&lon=${hive.longitude}`
+    );
+    const data = await res.json();
+
+    return "📍 " + (data.display_name || "Unknown");
+
+  }catch{
+    return "📍 Unknown";
+  }
 }
 
+// ✅ GRAPH
 function createChart(id, hive){
 
   if(charts[id]) charts[id].destroy();
 
   const ctx = document.getElementById(id).getContext("2d");
 
-  // gradient (like your image)
   const gradient = ctx.createLinearGradient(0,0,0,120);
   gradient.addColorStop(0,"rgba(54,162,235,0.4)");
   gradient.addColorStop(1,"rgba(54,162,235,0)");
@@ -145,6 +160,7 @@ function createChart(id, hive){
   });
 }
 
+// ✅ LOAD DATA
 async function load(){
 
   const res = await fetch("/data?x="+Date.now());
@@ -153,7 +169,9 @@ async function load(){
   const app = document.getElementById("app");
   app.innerHTML = "";
 
-  data.hives.forEach(hive=>{
+  for(const hive of data.hives){
+
+    let locationName = await getLocation(hive);
 
     app.innerHTML += `
     <div class="card">
@@ -163,7 +181,7 @@ async function load(){
         <div class="status">${hive.status}</div>
       </div>
 
-      <div class="location">${getLocation(hive)}</div>
+      <div class="location">${locationName}</div>
 
       <div class="metrics">
         <div>🌡 ${hive.temperature}°C</div>
@@ -183,10 +201,10 @@ async function load(){
     setTimeout(()=>{
       createChart(`c_${hive.hive_id}`, hive);
     },50);
-
-  });
+  }
 }
 
+// AUTO REFRESH
 load();
 setInterval(load,15000);
 
@@ -194,4 +212,3 @@ setInterval(load,15000);
 
 </body>
 </html>
-
