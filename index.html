@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Smart Beehive Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+:root{
+  --primary:#f4b400;
+  --dark:#1f2937;
+  --light:#f9fafb;
+  --card:#ffffff;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--light);
+  color:var(--dark);
+}
+
+/* ---------- HEADER ---------- */
+header{
+  background:linear-gradient(90deg,#f4b400,#f59e0b);
+  color:#fff;
+  padding:18px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+header h1{
+  margin:0;
+  font-size:22px;
+}
+
+header .live{
+  background:rgba(255,255,255,.2);
+  padding:6px 14px;
+  border-radius:20px;
+  font-size:14px;
+}
+
+/* ---------- MAIN ---------- */
+main{
+  max-width:1300px;
+  margin:auto;
+  padding:24px;
+}
+
+.hive-card{
+  background:var(--card);
+  border-radius:18px;
+  padding:22px;
+  margin-bottom:26px;
+  box-shadow:0 10px 30px rgba(0,0,0,.07);
+}
+
+.hive-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.hive-title{
+  font-size:18px;
+  font-weight:600;
+}
+
+.hive-status{
+  padding:6px 14px;
+  border-radius:20px;
+  font-size:14px;
+  background:#e5e7eb;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:18px;
+}
+
+.card{
+  background:#fff;
+  border-radius:14px;
+  padding:18px;
+  box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+
+.title{
+  font-size:13px;
+  color:#6b7280;
+}
+
+.value{
+  font-size:26px;
+  font-weight:600;
+}
+
+.updated{
+  margin-top:14px;
+  font-size:13px;
+  color:#6b7280;
+}
+
+/* ---------- FOOTER ---------- */
+footer{
+  text-align:center;
+  margin:30px 0;
+  font-size:13px;
+  color:#6b7280;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🐝 Smart Beehive Monitoring App</h1>
+  <div class="live">LIVE</div>
+</header>
+
+<main id="hiveContainer"></main>
+
+<footer>
+  © Smart Beehive Technology Platform
+</footer>
+
+<script>
+// ---------- LOCATION ----------
+async function getLocationName(lat, lon){
+  if(!lat || !lon || lat == "0" || lon == "0"){
+    return "Location unavailable";
+  }
+
+  try{
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+    );
+    const data = await res.json();
+    return data.display_name || "MGIRI Wardha";
+  }catch{
+    return "MGIRI Wardha";
+  }
+}
+
+// ---------- LOAD DATA ----------
+async function loadData(){
+  const container = document.getElementById("hiveContainer");
+  container.innerHTML = "";
+
+  const res = await fetch("/data");
+  const json = await res.json();
+
+  for(const hive of json.hives){
+
+    // ✅ SKIP DEFAULT / DUMMY HIVE
+    if(
+      !hive.hive_id ||
+      hive.hive_id === "HiveID" ||
+      (
+        hive.temperature == 0 &&
+        hive.humidity == 0 &&
+        hive.weight1 == 0 &&
+        hive.weight2 == 0 &&
+        hive.total_weight == 0
+      )
+    ){
+      continue;
+    }
+
+    const locationName = await getLocationName(
+      hive.latitude,
+      hive.longitude
+    );
+
+    container.innerHTML += `
+      <div class="hive-card">
+        <div class="hive-header">
+          <div class="hive-title">Hive ID: ${hive.hive_id}</div>
+          <div class="hive-status">${hive.status}</div>
+        </div>
+
+        <div class="grid">
+          <div class="card"><div class="title">🌡 Temperature</div><div class="value">${hive.temperature} °C</div></div>
+          <div class="card"><div class="title">💧 Humidity</div><div class="value">${hive.humidity} %</div></div>
+          <div class="card"><div class="title">⚖ Weight 1</div><div class="value">${hive.weight1} kg</div></div>
+          <div class="card"><div class="title">⚖ Weight 2</div><div class="value">${hive.weight2} kg</div></div>
+          <div class="card"><div class="title">📦 Total Weight</div><div class="value">${hive.total_weight} kg</div></div>
+          <div class="card"><div class="title">📍 Location</div><div class="value" style="font-size:16px">${locationName}</div></div>
+        </div>
+
+        <div class="updated">
+          Last update: ${hive.timestamp}
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ---------- AUTO REFRESH ----------
+loadData();
+setInterval(loadData,15000);
+</script>
+
+</body>
+</html>
