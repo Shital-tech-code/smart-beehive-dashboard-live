@@ -14,56 +14,77 @@ body{
   background:#eef1f5;
 }
 
+/* HEADER */
 header{
   background:linear-gradient(90deg,#f4b400,#ffcc00);
-  padding:15px;
+  padding:14px;
   text-align:center;
-  font-size:22px;
+  font-size:20px;
   font-weight:bold;
   color:#fff;
 }
 
+/* CENTER CONTAINER */
 .container{
+  max-width:420px;
+  margin:auto;
   padding:10px;
 }
 
+/* CARD */
 .card{
   background:#fff;
-  border-radius:15px;
-  padding:15px;
-  margin-bottom:15px;
-  box-shadow:0 6px 15px rgba(0,0,0,.1);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:14px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
 }
 
+/* TOP */
 .top{
   display:flex;
   justify-content:space-between;
   align-items:center;
+  font-weight:600;
 }
 
+/* STATUS */
 .status{
   background:#28a745;
   color:#fff;
-  padding:5px 12px;
+  padding:4px 12px;
   border-radius:20px;
   font-size:12px;
 }
 
+/* LOCATION */
 .location{
-  margin:8px 0;
-  color:#555;
+  font-size:13px;
+  color:#666;
+  margin:6px 0;
 }
 
+/* METRICS */
 .metrics{
   display:flex;
   justify-content:space-between;
-  margin:10px 0;
-  font-weight:500;
+  font-size:14px;
+  margin:8px 0;
+  border-bottom:1px solid #eee;
+  padding-bottom:6px;
 }
 
+/* GRAPH FIX */
+.chartBox{
+  height:120px;
+}
+
+/* TIME */
 .time{
-  font-size:12px;
-  color:#888;
+  font-size:11px;
+  color:#999;
+  text-align:right;
+  margin-top:6px;
 }
 </style>
 </head>
@@ -88,7 +109,14 @@ function createChart(id, hive){
 
   if(charts[id]) charts[id].destroy();
 
-  charts[id] = new Chart(document.getElementById(id), {
+  const ctx = document.getElementById(id).getContext("2d");
+
+  // gradient (like your image)
+  const gradient = ctx.createLinearGradient(0,0,0,120);
+  gradient.addColorStop(0,"rgba(54,162,235,0.4)");
+  gradient.addColorStop(1,"rgba(54,162,235,0)");
+
+  charts[id] = new Chart(ctx, {
     type: "line",
     data: {
       labels: ["Temp","Humidity","Weight"],
@@ -99,12 +127,20 @@ function createChart(id, hive){
           hive.total_weight
         ],
         borderWidth:2,
-        tension:0.4
+        tension:0.4,
+        fill:true,
+        backgroundColor:gradient,
+        pointRadius:4
       }]
     },
     options:{
+      responsive:true,
+      maintainAspectRatio:false,
       plugins:{legend:{display:false}},
-      scales:{y:{beginAtZero:true}}
+      scales:{
+        x:{grid:{display:false}},
+        y:{beginAtZero:true}
+      }
     }
   });
 }
@@ -135,7 +171,9 @@ async function load(){
         <div>⚖ ${hive.total_weight}kg</div>
       </div>
 
-      <canvas id="c_${hive.hive_id}" height="90"></canvas>
+      <div class="chartBox">
+        <canvas id="c_${hive.hive_id}"></canvas>
+      </div>
 
       <div class="time">⏱ ${hive.timestamp}</div>
 
@@ -156,3 +194,4 @@ setInterval(load,15000);
 
 </body>
 </html>
+
