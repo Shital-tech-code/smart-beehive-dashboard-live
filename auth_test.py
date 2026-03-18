@@ -100,8 +100,8 @@ def data():
             lat in ["0", "null", "None", ""] or
             lon in ["0", "null", "None", ""]
         ):
-            lat = "20.7453"
-            lon = "78.6022"
+            lat = "20.739964"
+            lon = "78.594939"
 
         # ---------------- STORE DATA ----------------
         latest_hives[hive_id] = {
