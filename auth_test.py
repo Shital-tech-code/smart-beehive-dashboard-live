@@ -8,7 +8,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 print("🐝 Starting Smart Beehive App...")
 
-# ---------------- APP ----------------
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 
@@ -42,6 +41,12 @@ def safe_float(val):
     except:
         return 0.0
 
+def get_hive_number(hive_id):
+    try:
+        return int(hive_id.split("_")[1])
+    except:
+        return 999
+
 # ---------------- ROUTES ----------------
 @app.route("/")
 def dashboard():
@@ -52,7 +57,7 @@ def data():
     rows = sheet.get_all_values()
 
     if len(rows) < 2:
-        return jsonify({"hives": []})
+        return jsonify({"hives": [], "total_hives": 0})
 
     records = rows[1:]
     latest_hives = {}
@@ -87,7 +92,6 @@ def data():
         ):
             continue
 
-        # ---------------- LOCATION FIX ----------------
         lat = row[8].strip()
         lon = row[9].strip()
 
@@ -96,15 +100,10 @@ def data():
             lat = "20.739964"
             lon = "78.594939"
 
-        # ---------------- STORE DATA ----------------
         latest_hives[hive_id] = {
             "timestamp": timestamp,
             "hive_id": hive_id,
-
-            # Existing status
             "status": row[2] if row[2] else "Active",
-
-            # ✅ NEW BATTERY STATUS
             "battery_status": "Active",
 
             "temperature": temperature,
@@ -117,12 +116,9 @@ def data():
             "longitude": lon
         }
 
-    # ---------------- SORT ----------------
     sorted_hives = sorted(
-    latest_hives.values(),
-    key=lambda x: int(x["hive_id"].split("_")[1])
-    if "_" in x["hive_id"] and x["hive_id"].split("_")[1].isdigit()
-    else 999
+        latest_hives.values(),
+        key=lambda x: get_hive_number(x["hive_id"])
     )
 
     return jsonify({
@@ -130,7 +126,6 @@ def data():
         "hives": sorted_hives
     })
 
-# ---------------- RUN ----------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
