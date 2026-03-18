@@ -14,7 +14,6 @@ body{
   background:#f4f6f9;
 }
 
-/* HEADER */
 header{
   background:#f4b400;
   color:#fff;
@@ -24,12 +23,10 @@ header{
   font-weight:600;
 }
 
-/* CONTAINER */
 main{
   padding:12px;
 }
 
-/* COMPACT CARD */
 .hive{
   background:#fff;
   border-radius:12px;
@@ -80,26 +77,26 @@ main{
 
 <script>
 
-// -------- LOCATION --------
-async function getLocationName(lat, lon){
-  if(!lat || !lon || lat == "0") return "Unavailable";
+let charts = {};
 
-  try{
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-    );
-    const data = await res.json();
-    return data.display_name || "Wardha";
-  }catch{
-    return "Wardha";
+// FAST LOCATION
+function getLocationName(hive){
+  if(hive.hive_id === "Hive_2"){
+    return "📍 MGIRI, Wardha";
   }
+  return "📍 Wardha";
 }
 
-// -------- GRAPH --------
+// GRAPH
 function createChart(id, hive){
+
   const ctx = document.getElementById(id);
 
-  new Chart(ctx, {
+  if(charts[id]){
+    charts[id].destroy();
+  }
+
+  charts[id] = new Chart(ctx, {
     type: 'line',
     data: {
       labels: ["Temp", "Humidity", "Weight"],
@@ -114,57 +111,61 @@ function createChart(id, hive){
       }]
     },
     options: {
+      responsive: true,
       plugins: { legend: { display: false } },
       scales: { y: { beginAtZero: true } }
     }
   });
 }
 
-// -------- LOAD DATA --------
+// LOAD DATA
 async function loadData(){
+
   const container = document.getElementById("hiveContainer");
-  container.innerHTML = "";
 
-  const res = await fetch("/data");
-  const json = await res.json();
+  try{
+    const res = await fetch("/data?nocache=" + Date.now());
+    const json = await res.json();
 
-  for(const hive of json.hives){
+    container.innerHTML = "";
 
-    // Skip dummy
-    if(!hive.hive_id) continue;
+    for(const hive of json.hives){
 
-    let locationName = await getLocationName(
-      hive.latitude,
-      hive.longitude
-    );
+      if(!hive.hive_id) continue;
 
-    container.innerHTML += `
-      <div class="hive">
-        
-        <div class="top">
-          <span>🐝 ${hive.hive_id}</span>
-          <span class="status">🟢 ${hive.status}</span>
+      let locationName = getLocationName(hive);
+
+      container.innerHTML += `
+        <div class="hive">
+          
+          <div class="top">
+            <span>🐝 ${hive.hive_id}</span>
+            <span class="status">🟢 ${hive.status}</span>
+          </div>
+
+          <div class="location">${locationName}</div>
+
+          <div class="metrics">
+            <span>🌡 ${hive.temperature}°C</span>
+            <span>💧 ${hive.humidity}%</span>
+            <span>⚖ ${hive.total_weight} kg</span>
+          </div>
+
+          <canvas id="chart_${hive.hive_id}" height="100"></canvas>
+
+          <div class="time">⏱ ${hive.timestamp}</div>
+
         </div>
+      `;
 
-        <div class="location">📍 ${locationName}</div>
+      setTimeout(()=>{
+        createChart(`chart_${hive.hive_id}`, hive);
+      },50);
+    }
 
-        <div class="metrics">
-          <span>🌡 ${hive.temperature}°C</span>
-          <span>💧 ${hive.humidity}%</span>
-          <span>⚖ ${hive.total_weight} kg</span>
-        </div>
-
-        <canvas id="chart_${hive.hive_id}" height="100"></canvas>
-
-        <div class="time">⏱ ${hive.timestamp}</div>
-
-      </div>
-    `;
-
-    // Draw chart
-    setTimeout(()=>{
-      createChart(`chart_${hive.hive_id}`, hive);
-    },100);
+  }catch(err){
+    container.innerHTML = "⚠️ Error loading data";
+    console.error(err);
   }
 }
 
