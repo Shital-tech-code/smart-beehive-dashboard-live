@@ -22,7 +22,7 @@ body{
   color:var(--dark);
 }
 
-/* ---------- HEADER ---------- */
+/* HEADER */
 header{
   background:linear-gradient(90deg,#f4b400,#f59e0b);
   color:#fff;
@@ -44,7 +44,7 @@ header .live{
   font-size:14px;
 }
 
-/* ---------- MAIN ---------- */
+/* MAIN */
 main{
   max-width:1300px;
   margin:auto;
@@ -107,7 +107,7 @@ main{
   color:#6b7280;
 }
 
-/* ---------- FOOTER ---------- */
+/* FOOTER */
 footer{
   text-align:center;
   margin:30px 0;
@@ -158,7 +158,7 @@ async function loadData(){
 
   for(const hive of json.hives){
 
-    // ✅ SKIP DEFAULT / DUMMY HIVE
+    // Skip invalid rows
     if(
       !hive.hive_id ||
       hive.hive_id === "HiveID" ||
@@ -173,10 +173,15 @@ async function loadData(){
       continue;
     }
 
-    const locationName = await getLocationName(
+    let locationName = await getLocationName(
       hive.latitude,
       hive.longitude
     );
+
+    // ✅ FORCE ONLY FOR HIVE_2
+    if (hive.hive_id === "Hive_2") {
+      locationName = "Radio MGIRI, Wardha";
+    }
 
     container.innerHTML += `
       <div class="hive-card">
@@ -202,7 +207,7 @@ async function loadData(){
   }
 }
 
-// ---------- AUTO REFRESH ----------
+// AUTO REFRESH
 loadData();
 setInterval(loadData,15000);
 </script>
