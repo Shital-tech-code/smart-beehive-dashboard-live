@@ -54,19 +54,17 @@ def data():
     if len(rows) < 2:
         return jsonify({"hives": []})
 
-    records = rows[1:]   # skip header
+    records = rows[1:]
     latest_hives = {}
 
     for row in records:
 
-        # Ensure full row exists
         if len(row) < 10:
             continue
 
         timestamp = row[0].strip()
         hive_id = row[1].strip()
 
-        # ❌ Skip header / invalid rows
         if (
             not hive_id or
             hive_id.lower() == "hiveid" or
@@ -80,7 +78,6 @@ def data():
         weight2 = safe_float(row[6])
         total_weight = safe_float(row[7])
 
-        # ❌ Skip dummy zero-data
         if (
             temperature == 0 and
             humidity == 0 and
@@ -94,12 +91,8 @@ def data():
         lat = row[8].strip()
         lon = row[9].strip()
 
-        # 👉 ONLY fix for Hive_2
-        if hive_id == "Hive_2" and (
-            not lat or not lon or
-            lat in ["0", "null", "None", ""] or
-            lon in ["0", "null", "None", ""]
-        ):
+        # ✅ ONLY Hive_2 → MGIRI
+        if hive_id == "Hive_2":
             lat = "20.739964"
             lon = "78.594939"
 
@@ -108,14 +101,18 @@ def data():
             "timestamp": timestamp,
             "hive_id": hive_id,
 
-            # 👉 Default status Active
+            # Existing status
             "status": row[2] if row[2] else "Active",
+
+            # ✅ NEW BATTERY STATUS
+            "battery_status": "Active",
 
             "temperature": temperature,
             "humidity": humidity,
             "weight1": weight1,
             "weight2": weight2,
             "total_weight": total_weight,
+
             "latitude": lat,
             "longitude": lon
         }
@@ -124,7 +121,7 @@ def data():
     sorted_hives = sorted(
         latest_hives.values(),
         key=lambda x: int(x["hive_id"].split("_")[1])
-        if "_" in x["hive_id"] and x["hive_id"].split("_")[1].isdigit()
+        if "_" in x["hive_id"].split("_")[1].isdigit()
         else 999
     )
 
@@ -132,7 +129,6 @@ def data():
         "total_hives": len(sorted_hives),
         "hives": sorted_hives
     })
-
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
