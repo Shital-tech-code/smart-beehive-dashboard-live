@@ -119,10 +119,10 @@ def data():
 
     # ---------------- SORT ----------------
     sorted_hives = sorted(
-        latest_hives.values(),
-        key=lambda x: int(x["hive_id"].split("_")[1])
-        if "_" in x["hive_id"].split("_")[1].isdigit()
-        else 999
+    latest_hives.values(),
+    key=lambda x: int(x["hive_id"].split("_")[1])
+    if "_" in x["hive_id"] and x["hive_id"].split("_")[1].isdigit()
+    else 999
     )
 
     return jsonify({
