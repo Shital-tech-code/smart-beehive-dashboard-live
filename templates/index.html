@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🐝 Smart Beehive Dashboard</title>
+<title>🐝 Smart Beehive</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -12,63 +12,58 @@
 body{
   margin:0;
   font-family:Segoe UI;
-  background:#f3f3f3;
+  background:#eef1f5;
 }
 
-/* HEADER */
 header{
-  background:#f4b400;
-  color:#fff;
+  background:linear-gradient(90deg,#f4b400,#ffcc00);
+  padding:14px;
   text-align:center;
-  padding:15px;
-  font-size:22px;
-  font-weight:bold;
+  font-size:20px;
+  color:#fff;
 }
 
-/* ROW */
-.row{
-  display:flex;
-  gap:10px;
+.container{
+  max-width:600px;
+  margin:auto;
   padding:10px;
-  flex-wrap:wrap;
 }
 
 /* CARD */
 .card{
-  flex:1;
-  min-width:280px;
   background:#fff;
-  border-radius:10px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  border-radius:12px;
   padding:12px;
+  margin-bottom:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+/* TOP */
+.top{
+  display:flex;
+  justify-content:space-between;
+  font-weight:600;
 }
 
 /* STATUS */
 .status{
   background:#28a745;
   color:#fff;
-  padding:6px;
-  border-radius:5px;
-  margin:8px 0;
+  padding:3px 10px;
+  border-radius:20px;
+  font-size:11px;
 }
 
-/* ITEM */
-.item{
-  margin:6px 0;
-  font-size:14px;
+/* INFO */
+.info{
+  font-size:13px;
+  margin:4px 0;
 }
 
-/* GRAPH SECTION */
-.graph{
-  margin:10px;
-  background:#fff;
-  padding:10px;
-  border-radius:10px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
-}
-
+/* GRAPH */
 .chartBox{
-  height:100px;
+  height:70px;   /* ✅ compact height */
+  margin-top:6px;
 }
 </style>
 
@@ -76,64 +71,36 @@ header{
 
 <body>
 
-<header>🐝 SMART BEEHIVE DASHBOARD</header>
+<header>🐝 Smart Beehive Dashboard</header>
 
-<!-- 🐝 HIVE CARDS -->
-
-<div class="row" id="cards"></div>
-
-<!-- 📊 GRAPHS -->
-
-<div class="graph">
-  <h3>🌡 Temperature</h3>
-  <div class="chartBox"><canvas id="tempChart"></canvas></div>
-</div>
-
-<div class="graph">
-  <h3>💧 Humidity</h3>
-  <div class="chartBox"><canvas id="humChart"></canvas></div>
-</div>
-
-<div class="graph">
-  <h3>⚖ Weight</h3>
-  <div class="chartBox"><canvas id="weightChart"></canvas></div>
-</div>
+<div class="container" id="app"></div>
 
 <script>
 
-// 📊 BAR CHART FUNCTION
-function createBarChart(id, labels, data, color){
+// 📊 THIN BAR GRAPH
+function createChart(id, value){
 
   const ctx = document.getElementById(id).getContext("2d");
 
-   new Chart(ctx,{
+  new Chart(ctx,{
     type:"bar",
     data:{
-      labels:labels,
+      labels:[""],
       datasets:[{
-        data:data,
-        backgroundColor:color,
-        barThickness:20,          // ✅ thinner bars
-        maxBarThickness:25        // ✅ control max size
+        data:[value],
+        backgroundColor:"#4caf50",
+        barThickness:10,        // ✅ thin bar
+        borderRadius:5
       }]
     },
     options:{
-      responsive:true,
-      maintainAspectRatio:false,
       plugins:{legend:{display:false}},
       scales:{
-        y:{
-          beginAtZero:true,
-          ticks:{
-            font:{size:10}        // ✅ small text
-          }
-        },
-        x:{
-          ticks:{
-            font:{size:11}
-          }
-        }
-      }
+        x:{display:false},
+        y:{beginAtZero:true, ticks:{font:{size:9}}}
+      },
+      responsive:true,
+      maintainAspectRatio:false
     }
   });
 }
@@ -141,9 +108,9 @@ function createBarChart(id, labels, data, color){
 // 📍 LOCATION
 async function getLocation(hive){
   if(hive.hive_id === "Hive_2"){
-    return "MGIRI, Wardha";
+    return "📍 MGIRI, Wardha";
   }
-  return "GPS Location";
+  return "📍 GPS Location";
 }
 
 // 🔄 LOAD DATA
@@ -152,54 +119,40 @@ async function load(){
   const res = await fetch("/data");
   const data = await res.json();
 
-  const h1 = data.hives.find(h=>h.hive_id==="Hive_1");
-  const h2 = data.hives.find(h=>h.hive_id==="Hive_2");
+  const app = document.getElementById("app");
+  app.innerHTML = "";
 
-  // 🐝 CARDS
-  const cards = document.getElementById("cards");
-  cards.innerHTML = "";
-
-  for(const hive of [h1,h2]){
+  for(const hive of data.hives){
 
     const loc = await getLocation(hive);
 
-    cards.innerHTML += `
-      <div class="card">
-        <b>Hive ID: ${hive.hive_id}</b>
-        <div class="status">🟢 Status: ${hive.status}</div>
+    const card = document.createElement("div");
+    card.className = "card";
 
-        <div class="item">🌡 Temperature: ${hive.temperature} °C</div>
-        <div class="item">💧 Humidity: ${hive.humidity} %</div>
-        <div class="item">⚖ Weight 1: ${hive.weight1 || 0} kg</div>
-        <div class="item">⚖ Weight 2: ${hive.weight2 || 0} kg</div>
-        <div class="item">📦 Total Weight: ${hive.total_weight} kg</div>
-        <div class="item">📍 Location: ${loc}</div>
-        <div class="item">⏱ Last update: ${hive.timestamp}</div>
+    card.innerHTML = `
+      <div class="top">
+        <div>🐝 ${hive.hive_id}</div>
+        <div class="status">${hive.status || "Active"}</div>
       </div>
+
+      <div class="info">🌡 Temp: ${hive.temperature} °C</div>
+      <div class="info">💧 Humidity: ${hive.humidity} %</div>
+      <div class="info">⚖ Weight: ${hive.total_weight} kg</div>
+      <div class="info">${loc}</div>
+      <div class="info">⏱ ${hive.timestamp}</div>
+
+      <div class="chartBox"><canvas id="t_${hive.hive_id}"></canvas></div>
+      <div class="chartBox"><canvas id="h_${hive.hive_id}"></canvas></div>
+      <div class="chartBox"><canvas id="w_${hive.hive_id}"></canvas></div>
     `;
+
+    app.appendChild(card);
+
+    // 📊 Graphs (compact + thin)
+    createChart(`t_${hive.hive_id}`, hive.temperature);
+    createChart(`h_${hive.hive_id}`, hive.humidity);
+    createChart(`w_${hive.hive_id}`, hive.total_weight);
   }
-
-  // 📊 BAR GRAPHS (ONLY 3 PARAMETERS)
-  createBarChart(
-    "tempChart",
-    ["Hive_1","Hive_2"],
-    [h1.temperature, h2.temperature],
-    ["orange","red"]
-  );
-
-  createBarChart(
-    "humChart",
-    ["Hive_1","Hive_2"],
-    [h1.humidity, h2.humidity],
-    ["blue","cyan"]
-  );
-
-  createBarChart(
-    "weightChart",
-    ["Hive_1","Hive_2"],
-    [h1.total_weight, h2.total_weight],
-    ["green","darkgreen"]
-  );
 }
 
 // AUTO REFRESH
