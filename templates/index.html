@@ -81,7 +81,10 @@ header{
   margin-top:6px;
 }
 
-/* TIME */
+.bigChart{
+  height:160px;
+}
+
 .time{
   font-size:11px;
   color:#999;
@@ -95,13 +98,63 @@ header{
 <body>
 
 <header>🐝 Smart Beehive Dashboard</header>
+
 <div class="container" id="app"></div>
 
 <script>
 
-let charts = {};
+// 📊 COMPARISON BAR GRAPH
+function createCompareChart(h1, h2){
 
-// 📍 LOCATION FUNCTION
+  const ctx = document.getElementById("compareChart").getContext("2d");
+
+  new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:["Temperature","Humidity","Weight"],
+      datasets:[
+        {
+          label:"Hive_1",
+          data:[h1.temperature, h1.humidity, h1.total_weight],
+          backgroundColor:"orange"
+        },
+        {
+          label:"Hive_2",
+          data:[h2.temperature, h2.humidity, h2.total_weight],
+          backgroundColor:"green"
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false
+    }
+  });
+}
+
+// 📊 SMALL GRAPH (ONLY 3 PARAMETERS)
+function createChart(id, value){
+
+  const ctx = document.getElementById(id).getContext("2d");
+
+  new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:[""],
+      datasets:[{
+        data:[value],
+        backgroundColor:"#007bff"
+      }]
+    },
+    options:{
+      plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true}},
+      maintainAspectRatio:false
+    }
+  });
+}
+
+// 📍 LOCATION
 async function getLocation(hive){
 
   if(hive.hive_id === "Hive_2"){
@@ -121,41 +174,6 @@ async function getLocation(hive){
   }
 }
 
-// 📊 CREATE SINGLE GRAPH
-function createChart(id, label, value){
-
-  const ctx = document.getElementById(id).getContext("2d");
-
-  const gradient = ctx.createLinearGradient(0,0,0,80);
-  gradient.addColorStop(0,"rgba(54,162,235,0.4)");
-  gradient.addColorStop(1,"rgba(54,162,235,0)");
-
-  return new Chart(ctx,{
-    type:"line",
-    data:{
-      labels:["Now"],
-      datasets:[{
-        label:label,
-        data:[value],
-        borderWidth:2,
-        tension:0.4,
-        fill:true,
-        backgroundColor:gradient,
-        pointRadius:3
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{display:false},
-        y:{beginAtZero:true}
-      }
-    }
-  });
-}
-
 // 🔄 LOAD DATA
 async function load(){
 
@@ -163,8 +181,22 @@ async function load(){
   const data = await res.json();
 
   const app = document.getElementById("app");
-  app.innerHTML = "";
 
+  const h1 = data.hives.find(h => h.hive_id === "Hive_1");
+  const h2 = data.hives.find(h => h.hive_id === "Hive_2");
+
+  app.innerHTML = `
+    
+    <!-- 🔝 COMPARISON GRAPH -->
+    <div class="card">
+      <div class="top">📊 Hive Comparison</div>
+      <div class="bigChart">
+        <canvas id="compareChart"></canvas>
+      </div>
+    </div>
+  `;
+
+  // 🔁 Loop for both hives (same design)
   for(const hive of data.hives){
 
     const card = document.createElement("div");
@@ -193,14 +225,19 @@ async function load(){
 
     app.appendChild(card);
 
-    // 📍 Load location
+    // 📍 Location
     const locationName = await getLocation(hive);
     card.querySelector(".location").textContent = locationName;
 
-    // 📊 Create graphs
-    createChart(`t_${hive.hive_id}`, "Temp", hive.temperature);
-    createChart(`h_${hive.hive_id}`, "Humidity", hive.humidity);
-    createChart(`w_${hive.hive_id}`, "Weight", hive.total_weight);
+    // 📊 Graphs (ONLY required params)
+    createChart(`t_${hive.hive_id}`, hive.temperature);
+    createChart(`h_${hive.hive_id}`, hive.humidity);
+    createChart(`w_${hive.hive_id}`, hive.total_weight);
+  }
+
+  // 📊 Create comparison graph
+  if(h1 && h2){
+    createCompareChart(h1, h2);
   }
 }
 
@@ -212,4 +249,3 @@ setInterval(load,15000);
 
 </body>
 </html>
-
