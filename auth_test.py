@@ -5,6 +5,7 @@ import gspread
 from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 import sys
 
 print("🐝 Smart Beehive PRO VERSION 🚀")
@@ -27,7 +28,7 @@ try:
             service_account_info = json.load(f)
 except Exception as e:
     print("❌ Google service account missing or invalid:", e)
-    sys.exit(1)  # Stop the app if credentials are missing
+    sys.exit(1)
 
 creds = ServiceAccountCredentials.from_json_keyfile_dict(service_account_info, scope)
 client = gspread.authorize(creds)
@@ -52,8 +53,9 @@ def get_hive_number(hive_id):
 # ---------------- ROUTES ----------------
 @app.route("/")
 def dashboard():
-    return render_template("index.html")  # Your HTML template in templates/
+    return render_template("index.html")
 
+# ---------------- LIVE DATA ----------------
 @app.route("/data")
 def data():
     rows = sheet.get_all_values()
@@ -70,17 +72,25 @@ def data():
 
         timestamp = row[0].strip()
         hive_id = row[1].strip()
-        if not hive_id:
+
+        # ✅ Strong filter (removes header problem)
+        if (
+            not hive_id or
+            "hive" not in hive_id.lower() or
+            hive_id.lower() == "hiveid" or
+            "timestamp" in timestamp.lower()
+        ):
             continue
 
         temperature = safe_float(row[3])
         humidity = safe_float(row[4])
         total_weight = safe_float(row[7])
+
         lat = row[8].strip()
         lon = row[9].strip()
 
-        # MGIRI fixed location for Hive_2
-        if hive_id == "Hive_2":
+        # ✅ Fix Hive_2 location
+        if hive_id == "Hive_2" and (not lat or not lon):
             lat = "20.739964"
             lon = "78.594939"
 
@@ -105,6 +115,53 @@ def data():
         "total_hives": len(sorted_hives),
         "hives": sorted_hives
     })
+
+# ---------------- GRAPH DATA ----------------
+@app.route("/graph-data")
+def graph_data():
+    rows = sheet.get_all_values()
+
+    if len(rows) < 2:
+        return jsonify({})
+
+    records = rows[1:]
+    hive_data = {}
+
+    for row in records:
+        if len(row) < 10:
+            continue
+
+        hive_id = row[1].strip()
+        timestamp_raw = row[0].strip()
+
+        if not hive_id or "hive" not in hive_id.lower():
+            continue
+
+        # ✅ Format time
+        try:
+            dt = datetime.strptime(timestamp_raw, "%d/%m/%Y %H:%M:%S")
+            timestamp = dt.strftime("%H:%M")
+        except:
+            timestamp = timestamp_raw
+
+        temp = safe_float(row[3])
+        hum = safe_float(row[4])
+        weight = safe_float(row[7])
+
+        if hive_id not in hive_data:
+            hive_data[hive_id] = {
+                "time": [],
+                "temp": [],
+                "hum": [],
+                "weight": []
+            }
+
+        hive_data[hive_id]["time"].append(timestamp)
+        hive_data[hive_id]["temp"].append(temp)
+        hive_data[hive_id]["hum"].append(hum)
+        hive_data[hive_id]["weight"].append(weight)
+
+    return jsonify(hive_data)
 
 # ---------------- MAIN ----------------
 if __name__ == "__main__":
