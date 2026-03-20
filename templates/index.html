@@ -15,6 +15,7 @@ body{
   background:#eef1f5;
 }
 
+/* HEADER */
 header{
   background:linear-gradient(90deg,#f4b400,#ffcc00);
   padding:14px;
@@ -23,8 +24,9 @@ header{
   color:#fff;
 }
 
+/* MAIN CONTAINER */
 .container{
-  max-width:600px;
+  max-width:900px;
   margin:auto;
   padding:10px;
 }
@@ -36,6 +38,11 @@ header{
   padding:12px;
   margin-bottom:14px;
   box-shadow:0 2px 8px rgba(0,0,0,.1);
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:scale(1.01);
 }
 
 /* TOP */
@@ -60,10 +67,18 @@ header{
   margin:4px 0;
 }
 
-/* GRAPH */
+/* GRAPH GRID */
+.chartGrid{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:8px;
+}
+
+/* SMALL GRAPH */
 .chartBox{
-  height:70px;   /* ✅ compact height */
-  margin-top:6px;
+  height:110px;
+  width:30%;
 }
 </style>
 
@@ -77,27 +92,33 @@ header{
 
 <script>
 
-// 📊 THIN BAR GRAPH
-function createChart(id, value){
+// 📊 COMPACT VERTICAL BAR
+function createChart(id, value, label, color){
 
   const ctx = document.getElementById(id).getContext("2d");
 
   new Chart(ctx,{
     type:"bar",
     data:{
-      labels:[""],
+      labels:[label],   // important for vertical bar
       datasets:[{
         data:[value],
-        backgroundColor:"#4caf50",
-        barThickness:10,        // ✅ thin bar
-        borderRadius:5
+        backgroundColor:color,
+        barThickness:6,   // thin bar
+        borderRadius:6
       }]
     },
     options:{
       plugins:{legend:{display:false}},
       scales:{
-        x:{display:false},
-        y:{beginAtZero:true, ticks:{font:{size:9}}}
+        x:{
+          display:true,
+          ticks:{font:{size:10}}
+        },
+        y:{
+          beginAtZero:true,
+          ticks:{font:{size:9}}
+        }
       },
       responsive:true,
       maintainAspectRatio:false
@@ -141,17 +162,19 @@ async function load(){
       <div class="info">${loc}</div>
       <div class="info">⏱ ${hive.timestamp}</div>
 
-      <div class="chartBox"><canvas id="t_${hive.hive_id}"></canvas></div>
-      <div class="chartBox"><canvas id="h_${hive.hive_id}"></canvas></div>
-      <div class="chartBox"><canvas id="w_${hive.hive_id}"></canvas></div>
+      <div class="chartGrid">
+        <div class="chartBox"><canvas id="t_${hive.hive_id}"></canvas></div>
+        <div class="chartBox"><canvas id="h_${hive.hive_id}"></canvas></div>
+        <div class="chartBox"><canvas id="w_${hive.hive_id}"></canvas></div>
+      </div>
     `;
 
     app.appendChild(card);
 
-    // 📊 Graphs (compact + thin)
-    createChart(`t_${hive.hive_id}`, hive.temperature);
-    createChart(`h_${hive.hive_id}`, hive.humidity);
-    createChart(`w_${hive.hive_id}`, hive.total_weight);
+    // 📊 Create compact graphs
+    createChart(`t_${hive.hive_id}`, hive.temperature, "Temp", "#ff9800");
+    createChart(`h_${hive.hive_id}`, hive.humidity, "Hum", "#2196f3");
+    createChart(`w_${hive.hive_id}`, hive.total_weight, "Weight", "#4caf50");
   }
 }
 
