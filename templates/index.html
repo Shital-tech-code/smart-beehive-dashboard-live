@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -181,8 +180,9 @@ function createChart(id, value, label, colorStart, colorEnd){
 
 // Hive Location
 async function getLocation(hive){
+  if(hive.hive_id === "Hive_1") return "📍 Sunna, Kelapur, Yavatmal District";
   if(hive.hive_id === "Hive_2") return "📍 MGIRI, Wardha";
-  return "📍 GPS Location";
+  return "📍 Unknown Location";
 }
 
 // Load Data & Render
