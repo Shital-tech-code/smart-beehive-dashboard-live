@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🐝 Smart Beehive</title>
+<title>🐝 Smart Beehive Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -12,84 +12,63 @@
 body{
   margin:0;
   font-family:Segoe UI;
-  background:#eef1f5;
+  background:#f3f3f3;
 }
 
 /* HEADER */
 header{
-  background:linear-gradient(90deg,#f4b400,#ffcc00);
-  padding:14px;
-  text-align:center;
-  font-size:20px;
-  font-weight:bold;
+  background:#f4b400;
   color:#fff;
+  text-align:center;
+  padding:15px;
+  font-size:22px;
+  font-weight:bold;
 }
 
-/* CONTAINER */
-.container{
-  max-width:420px;
-  margin:auto;
+/* ROW */
+.row{
+  display:flex;
+  gap:10px;
   padding:10px;
+  flex-wrap:wrap;
 }
 
 /* CARD */
 .card{
+  flex:1;
+  min-width:280px;
   background:#fff;
-  border-radius:14px;
+  border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
   padding:12px;
-  margin-bottom:14px;
-  box-shadow:0 4px 12px rgba(0,0,0,.1);
-}
-
-/* TOP */
-.top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  font-weight:600;
 }
 
 /* STATUS */
 .status{
   background:#28a745;
   color:#fff;
-  padding:4px 12px;
-  border-radius:20px;
-  font-size:12px;
-}
-
-/* LOCATION */
-.location{
-  font-size:13px;
-  color:#666;
-  margin:6px 0;
-}
-
-/* METRICS */
-.metrics{
-  display:flex;
-  justify-content:space-between;
-  font-size:14px;
+  padding:6px;
+  border-radius:5px;
   margin:8px 0;
-  border-bottom:1px solid #eee;
-  padding-bottom:6px;
 }
 
-/* GRAPH */
+/* ITEM */
+.item{
+  margin:6px 0;
+  font-size:14px;
+}
+
+/* GRAPH SECTION */
+.graph{
+  margin:10px;
+  background:#fff;
+  padding:10px;
+  border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
 .chartBox{
-  height:80px;
-  margin-top:6px;
-}
-
-.bigChart{
-  height:160px;
-}
-
-.time{
-  font-size:11px;
-  color:#999;
-  text-align:right;
-  margin-top:6px;
+  height:200px;
 }
 </style>
 
@@ -97,148 +76,116 @@ header{
 
 <body>
 
-<header>🐝 Smart Beehive Dashboard</header>
+<header>🐝 SMART BEEHIVE DASHBOARD</header>
 
-<div class="container" id="app"></div>
+<!-- 🐝 HIVE CARDS -->
+
+<div class="row" id="cards"></div>
+
+<!-- 📊 GRAPHS -->
+
+<div class="graph">
+  <h3>🌡 Temperature</h3>
+  <div class="chartBox"><canvas id="tempChart"></canvas></div>
+</div>
+
+<div class="graph">
+  <h3>💧 Humidity</h3>
+  <div class="chartBox"><canvas id="humChart"></canvas></div>
+</div>
+
+<div class="graph">
+  <h3>⚖ Weight</h3>
+  <div class="chartBox"><canvas id="weightChart"></canvas></div>
+</div>
 
 <script>
 
-// 📊 COMPARISON BAR GRAPH
-function createCompareChart(h1, h2){
-
-  const ctx = document.getElementById("compareChart").getContext("2d");
-
-  new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels:["Temperature","Humidity","Weight"],
-      datasets:[
-        {
-          label:"Hive_1",
-          data:[h1.temperature, h1.humidity, h1.total_weight],
-          backgroundColor:"orange"
-        },
-        {
-          label:"Hive_2",
-          data:[h2.temperature, h2.humidity, h2.total_weight],
-          backgroundColor:"green"
-        }
-      ]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false
-    }
-  });
-}
-
-// 📊 SMALL GRAPH (ONLY 3 PARAMETERS)
-function createChart(id, value){
+// 📊 BAR CHART FUNCTION
+function createBarChart(id, labels, data, color){
 
   const ctx = document.getElementById(id).getContext("2d");
 
   new Chart(ctx,{
     type:"bar",
     data:{
-      labels:[""],
+      labels:labels,
       datasets:[{
-        data:[value],
-        backgroundColor:"#007bff"
+        data:data,
+        backgroundColor:color
       }]
     },
     options:{
+      responsive:true,
+      maintainAspectRatio:false,
       plugins:{legend:{display:false}},
-      scales:{y:{beginAtZero:true}},
-      maintainAspectRatio:false
+      scales:{y:{beginAtZero:true}}
     }
   });
 }
 
 // 📍 LOCATION
 async function getLocation(hive){
-
   if(hive.hive_id === "Hive_2"){
-    return "📍 MGIRI, Wardha";
+    return "MGIRI, Wardha";
   }
-
-  try{
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${hive.latitude}&lon=${hive.longitude}`
-    );
-    const data = await res.json();
-
-    return "📍 " + (data.display_name || "Unknown location");
-
-  }catch{
-    return "📍 Unknown location";
-  }
+  return "GPS Location";
 }
 
 // 🔄 LOAD DATA
 async function load(){
 
-  const res = await fetch("/data?x="+Date.now());
+  const res = await fetch("/data");
   const data = await res.json();
 
-  const app = document.getElementById("app");
+  const h1 = data.hives.find(h=>h.hive_id==="Hive_1");
+  const h2 = data.hives.find(h=>h.hive_id==="Hive_2");
 
-  const h1 = data.hives.find(h => h.hive_id === "Hive_1");
-  const h2 = data.hives.find(h => h.hive_id === "Hive_2");
+  // 🐝 CARDS
+  const cards = document.getElementById("cards");
+  cards.innerHTML = "";
 
-  app.innerHTML = `
-    
-    <!-- 🔝 COMPARISON GRAPH -->
-    <div class="card">
-      <div class="top">📊 Hive Comparison</div>
-      <div class="bigChart">
-        <canvas id="compareChart"></canvas>
+  for(const hive of [h1,h2]){
+
+    const loc = await getLocation(hive);
+
+    cards.innerHTML += `
+      <div class="card">
+        <b>Hive ID: ${hive.hive_id}</b>
+        <div class="status">🟢 Status: ${hive.status}</div>
+
+        <div class="item">🌡 Temperature: ${hive.temperature} °C</div>
+        <div class="item">💧 Humidity: ${hive.humidity} %</div>
+        <div class="item">⚖ Weight 1: ${hive.weight1 || 0} kg</div>
+        <div class="item">⚖ Weight 2: ${hive.weight2 || 0} kg</div>
+        <div class="item">📦 Total Weight: ${hive.total_weight} kg</div>
+        <div class="item">📍 Location: ${loc}</div>
+        <div class="item">⏱ Last update: ${hive.timestamp}</div>
       </div>
-    </div>
-  `;
-
-  // 🔁 Loop for both hives (same design)
-  for(const hive of data.hives){
-
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML = `
-      <div class="top">
-        <div>🐝 ${hive.hive_id}</div>
-        <div class="status">${hive.status || "Active"}</div>
-      </div>
-
-      <div class="location">Loading...</div>
-
-      <div class="metrics">
-        <div>🌡 ${hive.temperature}°C</div>
-        <div>💧 ${hive.humidity}%</div>
-        <div>⚖ ${hive.total_weight}kg</div>
-      </div>
-
-      <div class="chartBox"><canvas id="t_${hive.hive_id}"></canvas></div>
-      <div class="chartBox"><canvas id="h_${hive.hive_id}"></canvas></div>
-      <div class="chartBox"><canvas id="w_${hive.hive_id}"></canvas></div>
-
-      <div class="time">⏱ ${hive.timestamp}</div>
     `;
-
-    app.appendChild(card);
-
-    // 📍 Location
-    const locationName = await getLocation(hive);
-    card.querySelector(".location").textContent = locationName;
-
-    // 📊 Graphs (ONLY required params)
-    createChart(`t_${hive.hive_id}`, hive.temperature);
-    createChart(`h_${hive.hive_id}`, hive.humidity);
-    createChart(`w_${hive.hive_id}`, hive.total_weight);
   }
 
-  // 📊 Create comparison graph
-  if(h1 && h2){
-    createCompareChart(h1, h2);
-  }
+  // 📊 BAR GRAPHS (ONLY 3 PARAMETERS)
+  createBarChart(
+    "tempChart",
+    ["Hive_1","Hive_2"],
+    [h1.temperature, h2.temperature],
+    ["orange","red"]
+  );
+
+  createBarChart(
+    "humChart",
+    ["Hive_1","Hive_2"],
+    [h1.humidity, h2.humidity],
+    ["blue","cyan"]
+  );
+
+  createBarChart(
+    "weightChart",
+    ["Hive_1","Hive_2"],
+    [h1.total_weight, h2.total_weight],
+    ["green","darkgreen"]
+  );
 }
 
 // AUTO REFRESH
