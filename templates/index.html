@@ -30,24 +30,24 @@ header {
   z-index: 100;
 }
 
-/* CONTAINER */
+/* CONTAINER: compact & centered for PPT */
 .container {
-  max-width: 960px;
-  margin: auto;
-  padding: 16px;
+  max-width: 600px;          /* compact width */
+  margin: 40px auto;         /* center horizontally & some top margin */
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr; /* single column stacked */
+  gap: 30px;                 /* space between cards */
   justify-items: center;
 }
 
 /* CARD */
 .card {
+  width: 100%;
+  max-width: 500px;          /* ensure compact card width */
   background: linear-gradient(145deg, #ffffff, #f0f4f9);
   border-radius: 20px;
-  padding: 20px;
-  width: 100%;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  padding: 25px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
   transition: transform 0.3s, box-shadow 0.3s;
 }
 
@@ -186,25 +186,18 @@ async function getLocation(hive){
 }
 
 // Load Data & Render
-// Load Data & Render
 async function load(){
   const res = await fetch("/data");
   const data = await res.json();
   const app = document.getElementById("app");
   app.innerHTML = "";
 
-  // Sort hives: Hive_1 first, Hive_2 second, rest by name
-  const sortedHives = data.hives.sort((a, b) => {
-    if(a.hive_id === "Hive_1") return -1;
-    if(a.hive_id === "Hive_2") return b.hive_id === "Hive_1" ? 1 : -1;
-    if(b.hive_id === "Hive_1") return 1;
-    if(b.hive_id === "Hive_2") return a.hive_id === "Hive_1" ? -1 : 1;
-    return a.hive_id.localeCompare(b.hive_id);
-  });
+  // Only Hive_1 and Hive_2, stacked
+  const hivesToShow = data.hives.filter(h => h.hive_id === "Hive_1" || h.hive_id === "Hive_2");
+  hivesToShow.sort((a,b) => a.hive_id.localeCompare(b.hive_id));
 
-  for(const hive of sortedHives){
+  for(const hive of hivesToShow){
     const loc = await getLocation(hive);
-
     const card = document.createElement("div");
     card.className = "card";
 
@@ -233,3 +226,10 @@ async function load(){
     createChart(`w_${hive.hive_id}`, hive.total_weight, "Weight", "#81c784", "#4caf50");
   }
 }
+
+// Auto Refresh
+load();
+setInterval(load, 15000);
+</script>
+</body>
+</html>
