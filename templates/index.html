@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -185,13 +186,23 @@ async function getLocation(hive){
 }
 
 // Load Data & Render
+// Load Data & Render
 async function load(){
   const res = await fetch("/data");
   const data = await res.json();
   const app = document.getElementById("app");
   app.innerHTML = "";
 
-  for(const hive of data.hives){
+  // Sort hives: Hive_1 first, Hive_2 second, rest by name
+  const sortedHives = data.hives.sort((a, b) => {
+    if(a.hive_id === "Hive_1") return -1;
+    if(a.hive_id === "Hive_2") return b.hive_id === "Hive_1" ? 1 : -1;
+    if(b.hive_id === "Hive_1") return 1;
+    if(b.hive_id === "Hive_2") return a.hive_id === "Hive_1" ? -1 : 1;
+    return a.hive_id.localeCompare(b.hive_id);
+  });
+
+  for(const hive of sortedHives){
     const loc = await getLocation(hive);
 
     const card = document.createElement("div");
@@ -222,10 +233,3 @@ async function load(){
     createChart(`w_${hive.hive_id}`, hive.total_weight, "Weight", "#81c784", "#4caf50");
   }
 }
-
-// Auto Refresh
-load();
-setInterval(load, 15000);
-</script>
-</body>
-</html>
