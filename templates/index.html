@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Beehive</title>
+<title>🐝 Smart Beehive</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -76,7 +77,8 @@ header{
 
 /* GRAPH */
 .chartBox{
-  height:120px;
+  height:80px;
+  margin-top:6px;
 }
 
 /* TIME */
@@ -87,65 +89,59 @@ header{
   margin-top:6px;
 }
 </style>
+
 </head>
 
 <body>
 
-<header>🐝 Smart Beehive</header>
+<header>🐝 Smart Beehive Dashboard</header>
 <div class="container" id="app"></div>
 
 <script>
 
 let charts = {};
 
-// ✅ LOCATION FUNCTION (FINAL FIX)
+// 📍 LOCATION FUNCTION
 async function getLocation(hive){
 
-  // Force MGIRI only for Hive_2
   if(hive.hive_id === "Hive_2"){
     return "📍 MGIRI, Wardha";
   }
 
-  // For Hive_1 → use GPS
   try{
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${hive.latitude}&lon=${hive.longitude}`
     );
     const data = await res.json();
 
-    return "📍 " + (data.display_name || "Unknown");
+    return "📍 " + (data.display_name || "Unknown location");
 
   }catch{
-    return "📍 Unknown";
+    return "📍 Unknown location";
   }
 }
 
-// ✅ GRAPH
-function createChart(id, hive){
-
-  if(charts[id]) charts[id].destroy();
+// 📊 CREATE SINGLE GRAPH
+function createChart(id, label, value){
 
   const ctx = document.getElementById(id).getContext("2d");
 
-  const gradient = ctx.createLinearGradient(0,0,0,120);
+  const gradient = ctx.createLinearGradient(0,0,0,80);
   gradient.addColorStop(0,"rgba(54,162,235,0.4)");
   gradient.addColorStop(1,"rgba(54,162,235,0)");
 
-  charts[id] = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: ["Temp","Humidity","Weight"],
-      datasets: [{
-        data: [
-          hive.temperature,
-          hive.humidity,
-          hive.total_weight
-        ],
+  return new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:["Now"],
+      datasets:[{
+        label:label,
+        data:[value],
         borderWidth:2,
         tension:0.4,
         fill:true,
         backgroundColor:gradient,
-        pointRadius:4
+        pointRadius:3
       }]
     },
     options:{
@@ -153,54 +149,61 @@ function createChart(id, hive){
       maintainAspectRatio:false,
       plugins:{legend:{display:false}},
       scales:{
-        x:{grid:{display:false}},
+        x:{display:false},
         y:{beginAtZero:true}
       }
     }
   });
 }
 
-// ✅ LOAD DATA
+// 🔄 LOAD DATA
 async function load(){
+
   const res = await fetch("/data?x="+Date.now());
   const data = await res.json();
 
   const app = document.getElementById("app");
-  app.innerHTML = ""; // Clear container
+  app.innerHTML = "";
 
   for(const hive of data.hives){
 
-    // ✅ Create card container first
     const card = document.createElement("div");
     card.className = "card";
 
     card.innerHTML = `
       <div class="top">
         <div>🐝 ${hive.hive_id}</div>
-        <div class="status">${hive.status}</div>
+        <div class="status">${hive.status || "Active"}</div>
       </div>
+
       <div class="location">Loading...</div>
+
       <div class="metrics">
         <div>🌡 ${hive.temperature}°C</div>
         <div>💧 ${hive.humidity}%</div>
         <div>⚖ ${hive.total_weight}kg</div>
       </div>
-      <div class="chartBox">
-        <canvas id="c_${hive.hive_id}"></canvas>
-      </div>
+
+      <div class="chartBox"><canvas id="t_${hive.hive_id}"></canvas></div>
+      <div class="chartBox"><canvas id="h_${hive.hive_id}"></canvas></div>
+      <div class="chartBox"><canvas id="w_${hive.hive_id}"></canvas></div>
+
       <div class="time">⏱ ${hive.timestamp}</div>
     `;
 
     app.appendChild(card);
 
-    // ✅ Resolve location asynchronously
+    // 📍 Load location
     const locationName = await getLocation(hive);
     card.querySelector(".location").textContent = locationName;
 
-    // ✅ Create chart after canvas exists
-    createChart(`c_${hive.hive_id}`, hive);
+    // 📊 Create graphs
+    createChart(`t_${hive.hive_id}`, "Temp", hive.temperature);
+    createChart(`h_${hive.hive_id}`, "Humidity", hive.humidity);
+    createChart(`w_${hive.hive_id}`, "Weight", hive.total_weight);
   }
 }
+
 // AUTO REFRESH
 load();
 setInterval(load,15000);
@@ -209,3 +212,4 @@ setInterval(load,15000);
 
 </body>
 </html>
+
