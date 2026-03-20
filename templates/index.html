@@ -68,7 +68,7 @@ header{
 }
 
 .chartBox{
-  height:200px;
+  height:120px;
 }
 </style>
 
@@ -106,20 +106,34 @@ function createBarChart(id, labels, data, color){
 
   const ctx = document.getElementById(id).getContext("2d");
 
-  new Chart(ctx,{
+   new Chart(ctx,{
     type:"bar",
     data:{
       labels:labels,
       datasets:[{
         data:data,
-        backgroundColor:color
+        backgroundColor:color,
+        barThickness:20,          // ✅ thinner bars
+        maxBarThickness:25        // ✅ control max size
       }]
     },
     options:{
       responsive:true,
       maintainAspectRatio:false,
       plugins:{legend:{display:false}},
-      scales:{y:{beginAtZero:true}}
+      scales:{
+        y:{
+          beginAtZero:true,
+          ticks:{
+            font:{size:10}        // ✅ small text
+          }
+        },
+        x:{
+          ticks:{
+            font:{size:11}
+          }
+        }
+      }
     }
   });
 }
